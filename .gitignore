@@ -128,7 +128,7 @@ celerybeat.pid
 *.sage.py
 
 # Environments
-.env
+# .env для тестирования оставим в репозитории
 .venv
 env/
 venv/
