@@ -4,6 +4,7 @@
 user_service.py
 Слой бизнес-логики для User Service.
 """
+import httpx
 from fastapi import HTTPException
 import bcrypt
 from typing import Optional, List
@@ -16,6 +17,7 @@ from app.repository.user_repository import (
     delete_user,
     get_user_by_id,
     get_users,
+    get_users_by_team,
     get_user_by_email,
 )
 
@@ -27,55 +29,88 @@ async def hash_password(password: str) -> str:
     return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
 
+async def check_team_exists(team_id: int) -> bool:
+    """
+    Отправляет запрос в team_service, чтобы проверить, существует ли команда.
+    """
+    TEAM_SERVICE_URL = "http://team_service:8002"
+
+    async with httpx.AsyncClient() as client:
+        response = await client.get(f"{TEAM_SERVICE_URL}/teams/{team_id}")
+
+    return response.status_code == 200  # Если 200, команда существует
+
+
 async def register_new_user(db: AsyncSession, user_data: UserCreate) -> User:
     """
-    Регистрация нового пользователя.
-    Проверяет, не занят ли email, затем хэширует пароль перед сохранением.
+    Регистрация нового пользователя. Проверяет email, хэширует пароль,
+    проверяет существование команды.
     """
-    # Проверяем, не занят ли email
     existing_user = await get_user_by_email(db, user_data.email)
     if existing_user:
         raise HTTPException(status_code=400, detail="Email уже используется")
 
-    # Хэшируем пароль перед сохранением
     hashed_password = await hash_password(user_data.password)
-    user_data.password = hashed_password  # Заменяем пароль на хэш
+    user_data.password = hashed_password
 
-    # Создаем пользователя в БД
+    if user_data.team_id:
+        team_exists = await check_team_exists(user_data.team_id)
+        if not team_exists:
+            raise HTTPException(status_code=400, detail="Команда не найдена")
+
     db_user = await create_user(db, user_data)
     return User.from_orm(db_user)
 
 
-async def modify_user(db: AsyncSession, user_id: int, user_data: UserUpdate) -> Optional[User]:
+async def add_user_to_team(db: AsyncSession, admin_id: int, user_id: int, team_id: int) -> bool:
     """
-    Обновление пользователя по ID.
+    Администратор добавляет пользователя в команду.
     """
-    db_user = await update_user(db, user_id, user_data)
-    if db_user:
-        return User.from_orm(db_user)
-    return None
+    admin = await get_user_by_id(db, admin_id)
+    if not admin or admin.role != "admin":
+        raise HTTPException(
+            status_code=403, detail="Только администратор может добавлять пользователей")
+
+    user = await get_user_by_id(db, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="Пользователь не найден")
+
+    if user.team_id is not None:
+        raise HTTPException(
+            status_code=400, detail="Пользователь уже состоит в команде")
+
+    user.team_id = team_id
+    await db.commit()
+    await db.refresh(user)
+    return True
 
 
-async def remove_user(db: AsyncSession, user_id: int) -> bool:
+async def remove_user_from_team(db: AsyncSession, admin_id: int, user_id: int) -> bool:
     """
-    Удаление пользователя по ID.
+    Администратор удаляет пользователя из команды.
     """
-    return await delete_user(db, user_id)
+    admin = await get_user_by_id(db, admin_id)
+    if not admin or admin.role != "admin":
+        raise HTTPException(
+            status_code=403, detail="Только администратор может удалять пользователей")
+
+    user = await get_user_by_id(db, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="Пользователь не найден")
+
+    if user.team_id is None:
+        raise HTTPException(
+            status_code=400, detail="Пользователь не состоит в команде")
+
+    user.team_id = None
+    await db.commit()
+    await db.refresh(user)
+    return True
 
 
-async def get_user_info(db: AsyncSession, user_id: int) -> Optional[User]:
+async def list_team_members(db: AsyncSession, team_id: int) -> List[User]:
     """
-    Получить информацию о пользователе по ID.
+    Возвращает список всех пользователей, входящих в команду.
     """
-    db_user = await get_user_by_id(db, user_id)
-    if db_user:
-        return User.from_orm(db_user)
-    return None
-
-
-async def list_all_users(db: AsyncSession) -> List[User]:
-    """
-    Получить список всех пользователей.
-    """
-    db_users = await get_users(db)
-    return [User.from_orm(u) for u in db_users]
+    db_users = await get_users_by_team(db, team_id)
+    return [User.from_orm(user) for user in db_users]

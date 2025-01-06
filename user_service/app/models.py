@@ -2,7 +2,7 @@
 
 """
 models.py
-Pydantic-модели для валидации данных в User Service.
+Pydantic-модели для User Service.
 """
 from pydantic import BaseModel, EmailStr
 from typing import Optional
@@ -16,6 +16,7 @@ class UserBase(BaseModel):
     email: EmailStr
     full_name: str
     status: str
+    role: str = "member"  # По умолчанию "member"
 
 
 class UserCreate(UserBase):
@@ -23,6 +24,7 @@ class UserCreate(UserBase):
     Модель для создания нового пользователя.
     """
     password: str
+    # Пользователь может выбрать команду при регистрации
     team_id: Optional[int] = None
 
 
@@ -33,14 +35,7 @@ class UserUpdate(BaseModel):
     email: Optional[EmailStr] = None
     full_name: Optional[str] = None
     status: Optional[str] = None
-    team_id: Optional[int] = None
-
-
-class UserDelete(BaseModel):
-    """
-    Модель для удаления пользователя (если нужно что-то специфическое).
-    """
-    user_id: int
+    role: Optional[str] = "member"  # По умолчанию "member"
 
 
 class User(UserBase):

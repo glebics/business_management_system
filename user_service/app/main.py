@@ -26,7 +26,10 @@ from app.service.user_service import (
     modify_user,
     remove_user,
     get_user_info,
-    list_all_users
+    list_all_users,
+    add_user_to_team,
+    remove_user_from_team,
+    list_team_members,
 )
 
 app = FastAPI(
@@ -119,6 +122,34 @@ async def list_users_endpoint(db: AsyncSession = Depends(get_db)):
     Возвращает список всех пользователей.
     """
     return await list_all_users(db)
+
+
+@app.post("/teams/{team_id}/add_user", summary="Добавить пользователя в команду")
+async def add_user_to_team_endpoint(
+    team_id: int, user_id: int, admin_id: int, db: AsyncSession = Depends(get_db)
+):
+    """
+    Администратор добавляет пользователя в команду.
+    """
+    return await add_user_to_team(db, admin_id, user_id, team_id)
+
+
+@app.post("/teams/{team_id}/remove_user", summary="Удалить пользователя из команды")
+async def remove_user_from_team_endpoint(
+    user_id: int, admin_id: int, db: AsyncSession = Depends(get_db)
+):
+    """
+    Администратор удаляет пользователя из команды.
+    """
+    return await remove_user_from_team(db, admin_id, user_id)
+
+
+@app.get("/teams/{team_id}/members", summary="Получить список участников команды")
+async def list_team_members_endpoint(team_id: int, db: AsyncSession = Depends(get_db)):
+    """
+    Возвращает список всех пользователей, входящих в команду.
+    """
+    return await list_team_members(db, team_id)
 
 
 if __name__ == "__main__":
