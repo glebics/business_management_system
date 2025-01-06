@@ -1,3 +1,5 @@
+# user_service/app/models.py
+
 """
 models.py
 Pydantic-модели для валидации данных в User Service.

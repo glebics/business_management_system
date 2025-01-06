@@ -1,13 +1,17 @@
+# user_service/app/config.py
+
 """
 config.py
-Загрузка переменных окружения из .dev.env
+Загрузка переменных окружения из .env
 и объявление глобальных констант для user_service.
 """
 import os
 from dotenv import load_dotenv
+from pathlib import Path
 
 # Путь к файлу окружения (из корня проекта)
-ENV_PATH = os.path.join(os.path.dirname(__file__), "../../.dev.env")
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
+ENV_PATH = BASE_DIR / ".env"
 load_dotenv(dotenv_path=ENV_PATH)
 
 POSTGRES_HOST: str = os.getenv("POSTGRES_HOST", "localhost")
@@ -21,4 +25,5 @@ USER_SERVICE_PORT: int = int(os.getenv("USER_SERVICE_PORT", "8001"))
 SECRET_KEY: str = os.getenv("SECRET_KEY", "supersecretkey")
 ALGORITHM: str = os.getenv("ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_MINUTES: int = int(
-    os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 30))
+    os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30")
+)

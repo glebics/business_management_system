@@ -1,17 +1,17 @@
+# user_service/app/repository/user_repository.py
+
 """
 user_repository.py
 Слой для работы с базой данных (CRUD-операции для пользователей).
 """
 from typing import List, Optional
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
+from sqlalchemy.future import select
+from sqlalchemy.ext.declarative import declarative_base
 from datetime import datetime
 
-# Импорт Pydantic-моделей
-from app.models import UserCreate, UserUpdate, User
-
-# Пример SQLAlchemy модели (упрощенно)
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
-from sqlalchemy.ext.declarative import declarative_base
+from app.models import UserCreate, UserUpdate
 
 Base = declarative_base()
 
@@ -31,28 +31,39 @@ class DBUser(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
 
-def create_user(db: Session, user_data: UserCreate) -> DBUser:
+async def get_user_by_email(db: AsyncSession, email: str) -> DBUser | None:
+    """
+    Проверяет, существует ли уже пользователь с данным email.
+    """
+    result = await db.execute(select(DBUser).where(DBUser.email == email))
+    return result.scalars().first()
+
+
+async def create_user(db: AsyncSession, user_data: UserCreate) -> DBUser:
     """
     Создает пользователя в базе данных.
     """
     new_user = DBUser(
         email=user_data.email,
-        password=user_data.password,  # Пароль должен быть захеширован
+        password=user_data.password,  # Пароль уже хэширован перед вызовом этой функции
         full_name=user_data.full_name,
         status=user_data.status,
         team_id=user_data.team_id,
     )
     db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
+    await db.commit()
+    await db.refresh(new_user)
     return new_user
 
 
-def update_user(db: Session, user_id: int, user_data: UserUpdate) -> Optional[DBUser]:
+async def update_user(db: AsyncSession, user_id: int, user_data: UserUpdate) -> Optional[DBUser]:
     """
     Обновляет данные пользователя по ID.
     """
-    user = db.query(DBUser).filter(DBUser.id == user_id).first()
+    result = await db.execute(
+        select(DBUser).where(DBUser.id == user_id)
+    )
+    user = result.scalars().first()
     if not user:
         return None
     if user_data.email is not None:
@@ -63,32 +74,39 @@ def update_user(db: Session, user_id: int, user_data: UserUpdate) -> Optional[DB
         user.status = user_data.status
     if user_data.team_id is not None:
         user.team_id = user_data.team_id
-    db.commit()
-    db.refresh(user)
+    await db.commit()
+    await db.refresh(user)
     return user
 
 
-def delete_user(db: Session, user_id: int) -> bool:
+async def delete_user(db: AsyncSession, user_id: int) -> bool:
     """
     Удаляет пользователя из базы данных.
     """
-    user = db.query(DBUser).filter(DBUser.id == user_id).first()
+    result = await db.execute(
+        select(DBUser).where(DBUser.id == user_id)
+    )
+    user = result.scalars().first()
     if not user:
         return False
-    db.delete(user)
-    db.commit()
+    await db.delete(user)
+    await db.commit()
     return True
 
 
-def get_user_by_id(db: Session, user_id: int) -> Optional[DBUser]:
+async def get_user_by_id(db: AsyncSession, user_id: int) -> Optional[DBUser]:
     """
     Возвращает пользователя по ID.
     """
-    return db.query(DBUser).filter(DBUser.id == user_id).first()
+    result = await db.execute(
+        select(DBUser).where(DBUser.id == user_id)
+    )
+    return result.scalars().first()
 
 
-def get_users(db: Session) -> List[DBUser]:
+async def get_users(db: AsyncSession) -> List[DBUser]:
     """
     Возвращает всех пользователей.
     """
-    return db.query(DBUser).all()
+    result = await db.execute(select(DBUser))
+    return result.scalars().all()

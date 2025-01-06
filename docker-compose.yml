@@ -5,7 +5,7 @@ services:
     image: postgres:15
     container_name: postgres_db
     env_file:
-      - .dev.env
+      - .env
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -21,7 +21,7 @@ services:
     build: ./user_service
     container_name: user_service
     env_file:
-      - .dev.env
+      - .env
     networks:
       - app_net
     ports:
@@ -29,77 +29,77 @@ services:
     depends_on:
       - db
 
-  team_service:
-    build: ./team_service
-    container_name: team_service
-    env_file:
-      - .dev.env
-    networks:
-      - app_net
-    ports:
-      - "${TEAM_SERVICE_PORT}:${TEAM_SERVICE_PORT}"
-    depends_on:
-      - db
+  # team_service:
+  #   build: ./team_service
+  #   container_name: team_service
+  #   env_file:
+  #     - .env
+  #   networks:
+  #     - app_net
+  #   ports:
+  #     - "${TEAM_SERVICE_PORT}:${TEAM_SERVICE_PORT}"
+  #   depends_on:
+  #     - db
 
-  org_structure_service:
-    build: ./org_structure_service
-    container_name: org_structure_service
-    env_file:
-      - .dev.env
-    networks:
-      - app_net
-    ports:
-      - "${ORG_STRUCTURE_SERVICE_PORT}:${ORG_STRUCTURE_SERVICE_PORT}"
-    depends_on:
-      - db
+  # org_structure_service:
+  #   build: ./org_structure_service
+  #   container_name: org_structure_service
+  #   env_file:
+  #     - .env
+  #   networks:
+  #     - app_net
+  #   ports:
+  #     - "${ORG_STRUCTURE_SERVICE_PORT}:${ORG_STRUCTURE_SERVICE_PORT}"
+  #   depends_on:
+  #     - db
 
-  tasks_service:
-    build: ./tasks_service
-    container_name: tasks_service
-    env_file:
-      - .dev.env
-    networks:
-      - app_net
-    ports:
-      - "${TASKS_SERVICE_PORT}:${TASKS_SERVICE_PORT}"
-    depends_on:
-      - db
+  # tasks_service:
+  #   build: ./tasks_service
+  #   container_name: tasks_service
+  #   env_file:
+  #     - .env
+  #   networks:
+  #     - app_net
+  #   ports:
+  #     - "${TASKS_SERVICE_PORT}:${TASKS_SERVICE_PORT}"
+  #   depends_on:
+  #     - db
 
-  meetings_service:
-    build: ./meetings_service
-    container_name: meetings_service
-    env_file:
-      - .dev.env
-    networks:
-      - app_net
-    ports:
-      - "${MEETINGS_SERVICE_PORT}:${MEETINGS_SERVICE_PORT}"
-    depends_on:
-      - db
+  # meetings_service:
+  #   build: ./meetings_service
+  #   container_name: meetings_service
+  #   env_file:
+  #     - .env
+  #   networks:
+  #     - app_net
+  #   ports:
+  #     - "${MEETINGS_SERVICE_PORT}:${MEETINGS_SERVICE_PORT}"
+  #   depends_on:
+  #     - db
 
-  calendar_service:
-    build: ./calendar_service
-    container_name: calendar_service
-    env_file:
-      - .dev.env
-    networks:
-      - app_net
-    ports:
-      - "${CALENDAR_SERVICE_PORT}:${CALENDAR_SERVICE_PORT}"
-    depends_on:
-      - db
+  # calendar_service:
+  #   build: ./calendar_service
+  #   container_name: calendar_service
+  #   env_file:
+  #     - .env
+  #   networks:
+  #     - app_net
+  #   ports:
+  #     - "${CALENDAR_SERVICE_PORT}:${CALENDAR_SERVICE_PORT}"
+  #   depends_on:
+  #     - db
 
-  admin_service:
-    build: ./admin_service
-    container_name: admin_service
-    env_file:
-      - .dev.env
-    networks:
-      - app_net
-    ports:
-      - "${ADMIN_SERVICE_PORT}:${ADMIN_SERVICE_PORT}"
-    depends_on:
-      - db
+  # admin_service:
+  #   build: ./admin_service
+  #   container_name: admin_service
+  #   env_file:
+  #     - .env
+  #   networks:
+  #     - app_net
+  #   ports:
+  #     - "${ADMIN_SERVICE_PORT}:${ADMIN_SERVICE_PORT}"
+  #   depends_on:
+  #     - db
 
 networks:
   app_net:
