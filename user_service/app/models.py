@@ -48,3 +48,11 @@ class User(UserBase):
 
     class Config:
         orm_mode = True
+
+
+class LoginRequest(BaseModel):
+    """
+    Модель для запроса на вход.
+    """
+    email: EmailStr
+    password: str
