@@ -75,28 +75,28 @@ async def get_db() -> AsyncSession:
 @app.post("/teams", summary="Создать новую команду", response_model=Team)
 async def create_team_endpoint(team_data: TeamCreate, db: AsyncSession = Depends(get_db)):
     """
-    Создает новую команду в системе.
+    Создает новую команду.
     """
     return await register_new_team(db, team_data)
 
 
 @app.put("/teams/{team_id}", summary="Обновить команду", response_model=Team)
-async def update_team_endpoint(team_id: int, team_data: TeamUpdate, db: AsyncSession = Depends(get_db)):
+async def update_team_endpoint(team_id: int, owner_id: int, team_data: TeamUpdate, db: AsyncSession = Depends(get_db)):
     """
-    Обновляет данные команды по ID.
+    Обновляет команду (только владелец может вносить изменения).
     """
-    updated = await modify_team(db, team_id, team_data)
+    updated = await modify_team(db, team_id, owner_id, team_data)
     if not updated:
         raise HTTPException(status_code=404, detail="Команда не найдена")
     return updated
 
 
 @app.delete("/teams/{team_id}", summary="Удалить команду")
-async def delete_team_endpoint(team_id: int, db: AsyncSession = Depends(get_db)):
+async def delete_team_endpoint(team_id: int, owner_id: int, db: AsyncSession = Depends(get_db)):
     """
-    Удаляет команду по ID.
+    Удаляет команду (только владелец может удалить).
     """
-    success = await remove_team(db, team_id)
+    success = await remove_team(db, team_id, owner_id)
     if not success:
         raise HTTPException(status_code=404, detail="Команда не найдена")
     return {"detail": "Команда успешно удалена"}

@@ -7,7 +7,7 @@ team_repository.py
 from typing import List, Optional
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import Column, Integer, String
+from sqlalchemy import Column, Integer, String, ForeignKey
 from sqlalchemy.future import select
 from sqlalchemy.ext.declarative import declarative_base
 
@@ -25,6 +25,8 @@ class DBTeam(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
     description = Column(String, nullable=True)
+    owner_id = Column(Integer, ForeignKey("users.id"),
+                      nullable=False)  # Владелец команды
 
 
 async def get_team_by_name(db: AsyncSession, name: str) -> DBTeam | None:
@@ -42,6 +44,7 @@ async def create_team(db: AsyncSession, team_data: TeamCreate) -> DBTeam:
     new_team = DBTeam(
         name=team_data.name,
         description=team_data.description,
+        owner_id=team_data.owner_id,  # Указываем владельца команды
     )
     db.add(new_team)
     await db.commit()
@@ -49,7 +52,7 @@ async def create_team(db: AsyncSession, team_data: TeamCreate) -> DBTeam:
     return new_team
 
 
-async def update_team(db: AsyncSession, team_id: int, user_id: int, team_data: TeamUpdate) -> Optional[DBTeam]:
+async def update_team(db: AsyncSession, team_id: int, owner_id: int, team_data: TeamUpdate) -> Optional[DBTeam]:
     """
     Обновляет данные команды. Только владелец может вносить изменения.
     """
@@ -59,7 +62,7 @@ async def update_team(db: AsyncSession, team_id: int, user_id: int, team_data: T
     if not team:
         raise HTTPException(status_code=404, detail="Команда не найдена")
 
-    if team.owner_id != user_id:
+    if team.owner_id != owner_id:
         raise HTTPException(
             status_code=403, detail="Вы не владелец этой команды")
 
@@ -73,7 +76,7 @@ async def update_team(db: AsyncSession, team_id: int, user_id: int, team_data: T
     return team
 
 
-async def remove_team(db: AsyncSession, team_id: int, user_id: int) -> bool:
+async def delete_team(db: AsyncSession, team_id: int, owner_id: int) -> bool:
     """
     Удаление команды по ID. Проверяет, является ли пользователь владельцем.
     """
@@ -83,29 +86,13 @@ async def remove_team(db: AsyncSession, team_id: int, user_id: int) -> bool:
     if not team:
         raise HTTPException(status_code=404, detail="Команда не найдена")
 
-    if team.owner_id != user_id:
+    if team.owner_id != owner_id:
         raise HTTPException(
             status_code=403, detail="Вы не владелец этой команды")
 
     await db.delete(team)
     await db.commit()
     return True
-
-
-"""
-старая версия удаления
-async def delete_team(db: AsyncSession, team_id: int) -> bool:
-    "" "
-    Удаляет команду из базы данных.
-    "" "
-    result = await db.execute(select(DBTeam).where(DBTeam.id == team_id))
-    team = result.scalars().first()
-    if not team:
-        return False
-    await db.delete(team)
-    await db.commit()
-    return True
-"""
 
 
 async def get_team_by_id(db: AsyncSession, team_id: int) -> Optional[DBTeam]:

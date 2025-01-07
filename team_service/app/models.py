@@ -20,7 +20,7 @@ class TeamCreate(TeamBase):
     """
     Модель для создания новой команды.
     """
-    pass  # Наследует все поля от TeamBase
+    owner_id: int  # ID пользователя-администратора, создающего команду
 
 
 class TeamUpdate(BaseModel):
@@ -36,6 +36,7 @@ class Team(TeamBase):
     Модель для возврата информации о команде.
     """
     id: int
+    owner_id: int  # ID владельца команды
 
     class Config:
         orm_mode = True

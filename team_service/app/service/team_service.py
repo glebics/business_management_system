@@ -14,42 +14,37 @@ from app.repository.team_repository import (
     update_team,
     delete_team,
     get_team_by_id,
-    get_teams,
     get_team_by_name,
+    get_teams,
 )
 
 
 async def register_new_team(db: AsyncSession, team_data: TeamCreate) -> Team:
     """
-    Регистрация новой команды.
-    Проверяет, не занято ли имя, затем создает команду.
+    Регистрация новой команды. Проверяет имя, затем создает команду.
     """
-    # Проверяем, не занято ли имя
     existing_team = await get_team_by_name(db, team_data.name)
     if existing_team:
         raise HTTPException(
             status_code=400, detail="Название команды уже используется")
 
-    # Создаем команду в БД
     db_team = await create_team(db, team_data)
     return Team.from_orm(db_team)
 
 
-async def modify_team(db: AsyncSession, team_id: int, team_data: TeamUpdate) -> Optional[Team]:
+async def modify_team(db: AsyncSession, team_id: int, owner_id: int, team_data: TeamUpdate) -> Optional[Team]:
     """
-    Обновление команды по ID.
+    Обновление команды по ID. Только владелец может редактировать.
     """
-    db_team = await update_team(db, team_id, team_data)
-    if db_team:
-        return Team.from_orm(db_team)
-    return None
+    db_team = await update_team(db, team_id, owner_id, team_data)
+    return Team.from_orm(db_team) if db_team else None
 
 
-async def remove_team(db: AsyncSession, team_id: int) -> bool:
+async def remove_team(db: AsyncSession, team_id: int, owner_id: int) -> bool:
     """
-    Удаление команды по ID.
+    Удаление команды по ID. Только владелец может удалить команду.
     """
-    return await delete_team(db, team_id)
+    return await delete_team(db, team_id, owner_id)
 
 
 async def get_team_info(db: AsyncSession, team_id: int) -> Optional[Team]:
@@ -57,9 +52,7 @@ async def get_team_info(db: AsyncSession, team_id: int) -> Optional[Team]:
     Получить информацию о команде по ID.
     """
     db_team = await get_team_by_id(db, team_id)
-    if db_team:
-        return Team.from_orm(db_team)
-    return None
+    return Team.from_orm(db_team) if db_team else None
 
 
 async def list_all_teams(db: AsyncSession) -> List[Team]:
