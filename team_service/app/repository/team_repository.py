@@ -12,6 +12,7 @@ from sqlalchemy.future import select
 from sqlalchemy.ext.declarative import declarative_base
 
 from app.models import TeamCreate, TeamUpdate
+from app.external_services import verify_user_exists
 
 Base = declarative_base()
 
@@ -25,8 +26,7 @@ class DBTeam(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
     description = Column(String, nullable=True)
-    owner_id = Column(Integer, ForeignKey("users.id"),
-                      nullable=False)  # Владелец команды
+    owner_id = Column(Integer, nullable=False)  # Владелец команды
 
 
 async def get_team_by_name(db: AsyncSession, name: str) -> DBTeam | None:
@@ -41,10 +41,11 @@ async def create_team(db: AsyncSession, team_data: TeamCreate) -> DBTeam:
     """
     Создает команду в базе данных.
     """
+    await verify_user_exists(team_data.owner_id)  # 🔍 Проверяем, что user существует
     new_team = DBTeam(
         name=team_data.name,
         description=team_data.description,
-        owner_id=team_data.owner_id,  # Указываем владельца команды
+        owner_id=team_data.owner_id
     )
     db.add(new_team)
     await db.commit()

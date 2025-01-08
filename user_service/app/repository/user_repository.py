@@ -29,7 +29,7 @@ class DBUser(Base):
     status = Column(String, nullable=False)
     # "member" или "admin"
     role = Column(String, nullable=False, default="member")
-    team_id = Column(Integer, ForeignKey("teams.id"), nullable=True)
+    team_id = Column(Integer, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
 

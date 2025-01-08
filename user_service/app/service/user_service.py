@@ -24,6 +24,7 @@ from app.repository.user_repository import (
     get_users_by_team,
     get_user_by_email,
 )
+from app.external_services import verify_team_exists
 
 
 async def hash_password(password: str) -> str:
@@ -61,6 +62,10 @@ async def register_new_user(db: AsyncSession, user_data: UserCreate) -> User:
     existing_user = await get_user_by_email(db, user_data.email)
     if existing_user:
         raise HTTPException(status_code=400, detail="Email уже используется")
+    
+    # Проверка на существование команды, если указан team_id
+    if user_data.team_id is not None:
+        await verify_team_exists(user_data.team_id)
 
     user_data.password = hash_password(user_data.password)
     db_user = await create_user(db, user_data)

@@ -1,4 +1,4 @@
-version: "3.8"
+# docker-compose.yml
 
 services:
   db:
@@ -16,6 +16,11 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
 
   user_service:
     build: ./user_service
@@ -27,19 +32,23 @@ services:
     ports:
       - "${USER_SERVICE_PORT}:${USER_SERVICE_PORT}"
     depends_on:
-      - db
+      team_service:
+        condition: service_started
+      db:
+        condition: service_healthy
+      
 
-  # team_service:
-  #   build: ./team_service
-  #   container_name: team_service
-  #   env_file:
-  #     - .env
-  #   networks:
-  #     - app_net
-  #   ports:
-  #     - "${TEAM_SERVICE_PORT}:${TEAM_SERVICE_PORT}"
-  #   depends_on:
-  #     - db
+  team_service:
+    build: ./team_service
+    container_name: team_service
+    env_file:
+      - .env
+    networks:
+      - app_net
+    ports:
+      - "${TEAM_SERVICE_PORT}:${TEAM_SERVICE_PORT}"
+    depends_on:
+      - db
 
   # org_structure_service:
   #   build: ./org_structure_service
