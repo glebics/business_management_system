@@ -1,5 +1,4 @@
 # team_service/app/main.py
-
 """
 main.py
 Точка входа в Team Service (FastAPI).
@@ -8,7 +7,6 @@ import uvicorn
 from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy import select
 from typing import List
 
 from app.config import (
@@ -28,6 +26,7 @@ from app.service.team_service import (
     get_team_info,
     list_all_teams
 )
+from app.external_services import verify_token  # Импорт проверки токена
 
 app = FastAPI(
     title="Team Service",
@@ -73,17 +72,27 @@ async def get_db() -> AsyncSession:
 
 
 @app.post("/teams", summary="Создать новую команду", response_model=Team)
-async def create_team_endpoint(team_data: TeamCreate, db: AsyncSession = Depends(get_db)):
+async def create_team_endpoint(
+    team_data: TeamCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(verify_token)
+):
     """
-    Создает новую команду.
+    Создает новую команду (только авторизованные пользователи).
     """
     return await register_new_team(db, team_data)
 
 
 @app.put("/teams/{team_id}", summary="Обновить команду", response_model=Team)
-async def update_team_endpoint(team_id: int, owner_id: int, team_data: TeamUpdate, db: AsyncSession = Depends(get_db)):
+async def update_team_endpoint(
+    team_id: int,
+    owner_id: int,
+    team_data: TeamUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(verify_token)
+):
     """
-    Обновляет команду (только владелец может вносить изменения).
+    Обновляет команду (только владелец может вносить изменения, доступ только для авторизованных пользователей).
     """
     updated = await modify_team(db, team_id, owner_id, team_data)
     if not updated:
@@ -92,9 +101,14 @@ async def update_team_endpoint(team_id: int, owner_id: int, team_data: TeamUpdat
 
 
 @app.delete("/teams/{team_id}", summary="Удалить команду")
-async def delete_team_endpoint(team_id: int, owner_id: int, db: AsyncSession = Depends(get_db)):
+async def delete_team_endpoint(
+    team_id: int,
+    owner_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(verify_token)
+):
     """
-    Удаляет команду (только владелец может удалить).
+    Удаляет команду (только владелец может удалить, доступ только для авторизованных пользователей).
     """
     success = await remove_team(db, team_id, owner_id)
     if not success:
@@ -103,9 +117,13 @@ async def delete_team_endpoint(team_id: int, owner_id: int, db: AsyncSession = D
 
 
 @app.get("/teams/{team_id}", summary="Получить информацию о команде", response_model=Team)
-async def get_team_endpoint(team_id: int, db: AsyncSession = Depends(get_db)):
+async def get_team_endpoint(
+    team_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(verify_token)
+):
     """
-    Возвращает информацию о команде по ID.
+    Возвращает информацию о команде по ID (доступ только для авторизованных пользователей).
     """
     team = await get_team_info(db, team_id)
     if not team:
@@ -114,9 +132,12 @@ async def get_team_endpoint(team_id: int, db: AsyncSession = Depends(get_db)):
 
 
 @app.get("/teams", summary="Список всех команд", response_model=List[Team])
-async def list_teams_endpoint(db: AsyncSession = Depends(get_db)):
+async def list_teams_endpoint(
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(verify_token)
+):
     """
-    Возвращает список всех команд.
+    Возвращает список всех команд (доступ только для авторизованных пользователей).
     """
     return await list_all_teams(db)
 

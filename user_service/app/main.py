@@ -185,6 +185,17 @@ async def get_user_endpoint(user_id: int, db: AsyncSession = Depends(get_db), cu
     return user
 
 
+@app.get("/users/me", summary="Получить текущего пользователя", response_model=User)
+async def get_current_user_endpoint(current_user: User = Depends(get_current_user)):
+    """
+    Возвращает информацию о текущем авторизованном пользователе.
+
+    :param current_user: Авторизованный пользователь, полученный через `get_current_user`.
+    :return: Объект пользователя (`User`).
+    """
+    return current_user
+
+
 @app.get("/users", summary="Список всех пользователей", response_model=List[User])
 async def list_users_endpoint(db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)):
     """

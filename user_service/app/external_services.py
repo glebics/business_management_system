@@ -1,5 +1,5 @@
+# user_service/external_services.py
 """
-external_services.py
 Модуль для взаимодействия с внешними сервисами.
 """
 import os
