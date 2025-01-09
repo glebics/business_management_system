@@ -22,7 +22,8 @@ from app.models import UserCreate, UserUpdate, User, LoginRequest
 from app.service.user_service import (
     register_new_user, modify_user, remove_user, get_user_info,
     list_all_users, login_user, authenticate_user,
-    add_user_to_team, remove_user_from_team, list_team_members
+    add_user_to_team, remove_user_from_team, list_team_members,
+    get_user_by_email_service
 )
 
 app = FastAPI(
@@ -60,24 +61,41 @@ async def get_db() -> AsyncSession:
         yield session
 
 
-async def get_current_user(token: str = Security(oauth2_scheme), db: AsyncSession = Depends(get_db)) -> User:
+async def get_current_user(
+    token: str = Security(oauth2_scheme),
+    db: AsyncSession = Depends(get_db)
+) -> User:
     """
-    Получает текущего пользователя по JWT-токену.
+    Получает текущего пользователя на основе переданного JWT-токена.
 
-    :param token: JWT-токен пользователя.
-    :param db: Асинхронная сессия базы данных.
-    :return: Данные аутентифицированного пользователя.
-    :raises HTTPException: 401 - если токен недействителен.
+    - Декодирует JWT-токен.
+    - Извлекает email (sub) из payload.
+    - Проверяет существование пользователя в базе данных.
+    - Возвращает объект пользователя, если он найден.
+
+    :param token: JWT-токен, переданный в заголовке Authorization (Bearer).
+    :param db: Асинхронная сессия SQLAlchemy для работы с базой данных.
+    :return: Объект пользователя (`User`), если он найден и токен валиден.
+    :raises HTTPException: 401 - если токен недействителен или пользователь не найден.
     """
     try:
+        # Декодируем JWT-токен
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        email: str = payload.get("sub")
+        email: str = payload.get("sub")  # Извлекаем email пользователя
+
+        # Проверяем, присутствует ли email в токене
         if not email:
             raise HTTPException(
                 status_code=401, detail="Недействительный токен")
 
-        user = await authenticate_user(db, email, "")
+        # Проверяем, существует ли пользователь в базе данных
+        user = await get_user_by_email_service(db, email)
+        if not user:
+            raise HTTPException(
+                status_code=401, detail="Пользователь не найден")
+
         return user
+
     except JWTError:
         raise HTTPException(status_code=401, detail="Недействительный токен")
 

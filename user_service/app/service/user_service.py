@@ -62,12 +62,12 @@ async def register_new_user(db: AsyncSession, user_data: UserCreate) -> User:
     existing_user = await get_user_by_email(db, user_data.email)
     if existing_user:
         raise HTTPException(status_code=400, detail="Email уже используется")
-    
+
     # Проверка на существование команды, если указан team_id
     if user_data.team_id is not None:
         await verify_team_exists(user_data.team_id)
 
-    user_data.password = hash_password(user_data.password)
+    user_data.password = await hash_password(user_data.password)
     db_user = await create_user(db, user_data)
     return User.from_orm(db_user)
 
@@ -236,3 +236,15 @@ async def list_all_users(db: AsyncSession) -> List[User]:
     """
     db_users = await get_users(db)
     return [User.from_orm(user) for user in db_users]
+
+
+async def get_user_by_email_service(db: AsyncSession, email: str) -> Optional[User]:
+    """
+    Получает пользователя по email через слой сервиса.
+
+    :param db: Асинхронная сессия базы данных.
+    :param email: Email пользователя.
+    :return: Объект пользователя (`User`) или None, если не найден.
+    """
+    db_user = await get_user_by_email(db, email)
+    return User.from_orm(db_user) if db_user else None

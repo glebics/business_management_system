@@ -36,6 +36,7 @@ class UserUpdate(BaseModel):
     full_name: Optional[str] = None
     status: Optional[str] = None
     role: Optional[str] = "member"  # По умолчанию "member"
+    team_id: Optional[int] = None
 
 
 class User(UserBase):
